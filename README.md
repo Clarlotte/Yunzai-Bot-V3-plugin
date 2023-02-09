@@ -17,3 +17,5 @@
 - #踢@XXX
 - #我要头衔xxx
 - #我不要头衔了
+
+[码云项目地址](https://gitee.com/clarlotte/Yunzai-Bot-V3-plugin)
