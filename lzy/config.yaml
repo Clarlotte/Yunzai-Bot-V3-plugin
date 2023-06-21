@@ -1,0 +1,11 @@
+#头衔违禁词
+titleArr: []
+
+#发言违禁词
+speakArr: []
+
+group:
+  - 123456
+
+master:
+  - 123456
