@@ -23,4 +23,4 @@
 - #设置群管XXX（为纯数字，私聊进行使用，目的是添加你需要机器人使用此插件的群） 
 - #设置禁言时长XXX （为纯数字，如果后面没有加数字，则默认修改为10分钟，请使用60的整数）  
 
-[GitHub项目地址](https://github.com/Clarlotte/Yunzai-Bot-V3-plugin)
+[Gitee项目地址](https://gitee.com/clarlotte/Yunzai-Bot-V3-plugin)
