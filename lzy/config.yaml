@@ -1,13 +1,4 @@
-#头衔违禁词
-titleArr: []
-
-#发言违禁词
-speakArr: []
-
 group:
-  - 123456
-
-master:
-  - 123456
-
-time: 300
+- 591171738
+- 182027840
+auto: true
