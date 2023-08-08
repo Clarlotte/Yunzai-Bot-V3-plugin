@@ -4,7 +4,7 @@
  **修改插件优先级可解决，不过可能导致此插件无法使用** 
 
 推荐搭配[Yunzai-Bot 轻量版](https://gitee.com/Nwflower/yunzai-bot-lite)作为一个单独的群管进行使用  
-groupSetting中最大的问题是当群聊消息频繁时，无法及时写入，所以会导致群聊消息的数据统计不完整
+groupSetting中的发言统计功能，由于云崽自身的冷却时间，会导致数据统计不完全，如需统计完全，需将/config/config/config.js中的groupCD和singleCD改为0
 
 
 #### 介绍
