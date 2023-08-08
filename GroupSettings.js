@@ -15,6 +15,7 @@ import { segment } from 'oicq'
 import fs from 'fs';
 import path from 'path'
 import yaml from 'js-yaml'
+import YAML from "yaml"
 
 let pathAddr = process.cwd().replace(/\\/g, '/')
 
@@ -344,13 +345,14 @@ export class groupSetting extends plugin {
 
     //添加或删除违禁词
     async modify(e) {
+        console.log(e.group_id)
         if (!config.get('group').includes(e.group_id)) {
             e.reply(`此群无权使用此机器人，请联系QQ${masterQQ}进行处理`, true)
             return false
         }
         await this.punishment(e)
         let groupcfg = await this.getGroupYaml(e.group_id)
-        if (groupcfg.get('master').includes(e.user_id))
+        if (!groupcfg.get('master').includes(e.user_id))
             return false
         let reg = new RegExp('^(添加|删除)(头衔违禁词|发言违禁词)(.+)$')
         let option = reg.exec(e.msg)[1]
@@ -410,9 +412,9 @@ export class groupSetting extends plugin {
             return false
         }
         await this.punishment(e)
+        let groupcfg = await this.getGroupYaml(e.group_id)
         if (groupcfg.get('groupmaster').includes(e.user_id))
             return false
-        let groupcfg = await this.getGroupYaml(e.group_id)
         let reg = new RegExp('^(添加|删除)(群管)([0-9]+)$')
         let option = reg.exec(e.msg)[0]
         let value = Number(reg.exec(e.msg)[1])
@@ -459,14 +461,13 @@ export class groupSetting extends plugin {
     //设置禁言时长
     async setTime(e) {
         if (!config.get('group').includes(e.group_id)) {
-            let masterQQ = cfg.masterQQ[0]
             e.reply(`此群无权使用此机器人，请联系QQ${masterQQ}进行处理`, true)
             return false
         }
-        if (groupcfg.get('master').includes(e.user_id))
+        let groupcfg = await this.getGroupYaml(e.group_id)
+        if (!groupcfg.get('master').includes(e.user_id))
             return false
         await this.punishment(e)
-        let groupcfg = await this.getGroupYaml(e.group_id)
         let reg = new RegExp('^设置禁言时长([0-9]*)$')
         let time = Number(reg.exec(e.msg)[1])
         if (time % 60 != 0) {
@@ -483,40 +484,13 @@ export class groupSetting extends plugin {
     async punishment(e) {
         if (!config.get('group').includes(e.group_id)) return false
         let groupcfg = await this.getGroupYaml(e.group_id)
-        if (config.get('auto')) {
-            if (e.group.pickMember(e.user_id).is_owner) {
-                let arr = groupcfg.get('groupmaster')
-                if (groupcfg.get('groupmaster').includes(e.user_id)) {
-                    return true
-                } else {
-                    if (Array.isArray(arr)) {
-                        arr.push(e.user_id)
-                    } else {
-                        arr = [e.user_id]
-                    }
-                    groupcfg.set('groupmaster', arr)
-                    groupcfg.set('master', arr)
-                }
-            }
-            if (e.group.pickMember(e.user_id).is_admin) {
-                let arr = groupcfg.get('master')
-                if (groupcfg.get('master').includes(e.user_id)) {
-                    return true
-                } else {
-                    if (Array.isArray(arr)) {
-                        arr.push(e.user_id)
-                    } else {
-                        arr = [e.user_id]
-                    }
-                    groupcfg.set('master', arr)
-                }
-            }
-        }
         let date = new Date()
         let timestamp = date.getDate()
         let data = Number(groupcfg.get('data'))
+        let time = Number(groupcfg.get('time'))
+        console.log(e.group_id + '--------------' + data)
         if (groupcfg.get('timestamp') == Number(timestamp)) {
-            groupcfg.set('data', ++data)
+            groupcfg.set('data', data + 1)
         } else {
             groupcfg.set('timestamp', timestamp)
             groupcfg.set('data', 1)
@@ -527,7 +501,8 @@ export class groupSetting extends plugin {
                 if (groupcfg.get('master').includes(e.user_id) || groupcfg.get('groupmaster').includes(e.user_id)) {
                     return true
                 } else {
-                    e.group.recallMsg(e.msg)
+                    console.log(e.msg)
+                    e.group.recallMsg(e)
                     e.group.muteMember(e.user_id, time)
                     let msg = [
                         segment.at(e.user_id),
@@ -571,10 +546,12 @@ export class groupSetting extends plugin {
             e.reply(`此群无权使用此机器人，请联系QQ${masterQQ}进行处理`, true)
             return false
         }
+        let date = new Date()
+        let timestamp = date.getDate()
         await this.punishment(e)
         let groupcfg = await this.getGroupYaml(e.group_id)
         if (groupcfg.get('timestamp') != timestamp) {
-            groupcfg.set('increase', 0)
+            groupcfg.set('decrease', 0)
         }
         let data = groupcfg.get('decrease')
         e.reply(`今日退群数据：${data}人`)
