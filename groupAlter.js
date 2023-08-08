@@ -3,7 +3,7 @@
  * @Author: Clarlotte
  * @Date: 2023-07-21 14:27:35
  * @LastEditors: Please set LastEditors
- * @LastEditTime: 2023-07-22 07:42:11
+ * @LastEditTime: 2023-07-22 14:03:11
  * Copyright: 2023 xxxTech CO.,LTD. All Rights Reserved.
  * @Descripttion: 
  */
@@ -13,6 +13,8 @@ import fs from 'fs';
 import yaml from 'js-yaml'
 
 let pathAddr = process.cwd().replace(/\\/g, '/')
+
+//await init()
 
 let YamlReader = await import('./lzy/config.js')
 YamlReader = YamlReader.default
@@ -50,14 +52,14 @@ export class groupSetting extends plugin {
             }
             fs.writeFileSync(groupPath, yaml.dump(Data), 'utf-8')
         }
-        if (gainType != ('increase' || 'decrease')) return false
+        if (gainType != 'increase' && gainType != 'decrease') return false
         let groupcfg = new YamlReader(pathAddr + '/plugins/example/lzy/' + e.group_id + '.yaml', true)
         let data = groupcfg.get(gainType)
         if (groupcfg.get('timestamp') == Number(timestamp)) {
-            groupcfg.set(gainType, ++data)
+            groupcfg.set(gainType, data + 1)
         } else {
             groupcfg.set('timestamp', timestamp)
-            groupcfg.set('data', 1)
+            groupcfg.set(gainType, 1)
         }
     }
 }
