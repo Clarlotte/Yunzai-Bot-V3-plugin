@@ -6,7 +6,6 @@
 推荐搭配[Yunzai-Bot 轻量版](https://gitee.com/Nwflower/yunzai-bot-lite)作为一个单独的群管进行使用  
 groupSetting中的发言统计功能，由于云崽自身的冷却时间，会导致数据统计不完全，如需统计完全，需将/config/config/config.js中的groupCD和singleCD改为0
 
-
 #### 介绍
 - 基于Yunzai-Bot V3开发的插件，仅支持Yunzai-Bot V3，建议Bot为群主时使用该插件
 - 目前功能有设置和取消管理（机器人必须是群主），以及踢出群成员
@@ -30,7 +29,8 @@ groupSetting中的发言统计功能，由于云崽自身的冷却时间，会�
 - #设置群管XXX（为纯数字，私聊进行使用，目的是添加你需要机器人使用此插件的群） 
 - #设置禁言时长XXX （为纯数字，如果后面没有加数字，则默认修改为10分钟，请使用60的整数）  
 
-[GitHub项目地址](https://github.com/Clarlotte/Yunzai-Bot-V3-plugin)  
+[GitHub项目地址](https://github.com/Clarlotte/Yunzai-Bot-V3-plugin)       
+
 [Gitee项目地址](https://gitee.com/clarlotte/Yunzai-Bot-V3-plugin)
 
 #### 其他
