@@ -88,7 +88,7 @@ export class groupSetting extends plugin {
                 },
                 {
                     /** 命令正则匹配 */
-                    reg: '^设置禁言时长([0-9]*)$',
+                    reg: '^设置禁言时长([0-9]+)(分|时|天)$',
                     /** 执行方法 */
                     fnc: 'setTime',
                 },
@@ -112,17 +112,21 @@ export class groupSetting extends plugin {
                 },
                 {
                     /** 命令正则匹配 */
+                    reg: '^设置群禁言提醒(开启|关闭)$',
+                    /** 执行方法 */
+                    fnc: 'groupNotice',
+                },
+                {
+                    /** 命令正则匹配 */
                     reg: '^.*$',
                     /** 执行方法 */
                     fnc: 'punishment',
-                    log: false
                 },
                 {
                     /** 命令正则匹配 */
                     reg: '^(删除|添加)(群)([0-9]+)$',
                     /** 执行方法 */
                     fnc: 'addGroupManage',
-                    log: false
                 },
             ]
         })
@@ -135,6 +139,7 @@ export class groupSetting extends plugin {
     async getGroupYaml(group_id) {
         let date = new Date()
         let timestamp = date.getDate()
+        let grouptimestamp = date.getDate()
         if (!fs.readdirSync(this.dirPath, 'utf-8').includes(group_id + '.yaml')) {
             let groupPath = this.dirPath + '/' + group_id + '.yaml'
             let Data = {
@@ -142,14 +147,18 @@ export class groupSetting extends plugin {
                 titleArr: [],
                 //发言违禁词
                 speakArr: [],
-                //群管列表（权限最大）
-                groupmaster: [],
+                //群管列表（权限最大，默认首次登陆机器人时设置的主人）
+                groupmaster: masterQQ,
                 //管理列表（仅次于上面的）
                 master: [],
                 //禁言时长（默认5分钟）
                 time: 300,
-                //时间戳，用来第二天刷新群发言，进退群数据
+                //群发言时间戳，用来第二天刷新群发言，进退群数据
                 timestamp: timestamp,
+                //群成员变动时间戳，用来刷新进退群人数数据
+                grouptimestamp: grouptimestamp,
+                //群禁言提醒开关
+                groupnotice: true,
                 //群发言数据
                 data: 1,
                 //进群数据
@@ -212,10 +221,10 @@ export class groupSetting extends plugin {
             e.reply(`此群无权使用此机器人，请联系QQ${masterQQ}进行处理`, true)
             return false
         }
-        if (!e.group.is_owner) return false
         await this.punishment(e)
+        if (!e.group.is_owner) return false
         let groupcfg = await this.getGroupYaml(e.group_id)
-        if (groupcfg.get('groupmaster').some(item => item == Number(e.group_id)) || groupcfg.get('master').some(item => item == Number(e.group_id))) {
+        if (groupcfg.get('groupmaster').includes(e.user_id)) {
             let qq = null
             for (let msg of e.message) {
                 if (msg.type == 'at') {
@@ -234,8 +243,8 @@ export class groupSetting extends plugin {
             e.reply(`此群无权使用此机器人，请联系QQ${masterQQ}进行处理`, true)
             return false
         }
-        if (!e.group.is_owner) return false
         await this.punishment(e)
+        if (!e.group.is_owner) return false
         e.group.setTitle(e.user_id, '');
         e.reply(`头衔撤销成功了`, true);
     }
@@ -244,7 +253,8 @@ export class groupSetting extends plugin {
         if (!config.get('group').includes(e.group_id)) {
             e.reply(`此群无权使用此机器人，请联系QQ${masterQQ}进行处理`, true)
             return false
-        } await this.punishment(e)
+        }
+        await this.punishment(e)
         if (!e.group.is_owner) return false
         let groupcfg = await this.getGroupYaml(e.group_id)
         if (groupcfg.get('groupmaster').includes(e.user_id)) {
@@ -283,7 +293,7 @@ export class groupSetting extends plugin {
         if (!e.group.is_owner) return false
         let groupcfg = await this.getGroupYaml(e.group_id)
         if (config.get('group').includes(e.group_id)) {
-            if (groupcfg.get('master').includes(e.user_id)) {
+            if (groupcfg.get('groupmaster').includes(e.user_id)) {
                 let qq = null
                 for (let msg of e.message) {
                     if (msg.type == 'at') {
@@ -317,12 +327,12 @@ export class groupSetting extends plugin {
             e.reply(`此群无权使用此机器人，请联系QQ${masterQQ}进行处理`, true)
             return false
         }
+        await this.punishment(e)
         console.log(e.group.is_admin + '-----------' + e.group.is_owner)
         if (!e.group.is_admin && !e.group.is_owner)
             return false
-        await this.punishment(e)
         let groupcfg = await this.getGroupYaml(e.group_id)
-        if (groupcfg.get('master').includes(e.group_id)) {
+        if (groupcfg.get('master').includes(e.user_id)) {
             let kick_qq = null
             for (let msg of e.message) {
                 if (msg.type == 'at') {
@@ -352,7 +362,7 @@ export class groupSetting extends plugin {
         }
         await this.punishment(e)
         let groupcfg = await this.getGroupYaml(e.group_id)
-        if (!groupcfg.get('master').includes(e.user_id))
+        if (!groupcfg.get('groupmaster').includes(e.user_id))
             return false
         let reg = new RegExp('^(添加|删除)(头衔违禁词|发言违禁词)(.+)$')
         let option = reg.exec(e.msg)[1]
@@ -411,50 +421,47 @@ export class groupSetting extends plugin {
             e.reply(`此群无权使用此机器人，请联系QQ${masterQQ}进行处理`, true)
             return false
         }
+
         await this.punishment(e)
         let groupcfg = await this.getGroupYaml(e.group_id)
-        if (groupcfg.get('groupmaster').includes(e.user_id))
+        if (!groupcfg.get('groupmaster').includes(e.user_id))
             return false
-        let reg = new RegExp('^(添加|删除)(群管)([0-9]+)$')
-        let option = reg.exec(e.msg)[0]
-        let value = Number(reg.exec(e.msg)[1])
+        let reg = new RegExp('^(添加|删除)群管([0-9]+)$')
+        let option = reg.exec(e.msg)[1]
+        let value = Number(reg.exec(e.msg)[2])
         let msg = [`群管列表:\n`]
-        if (groupcfg.get('master').includes(e.group_id)) {
-            if (e.isPrivate) {
-                if (groupcfg.get('groupmaster').includes(value)) {
-                    e.reply(`此人已在群管列表中，无需重复添加`, true)
+        console.log(option + '------' + value)
+        if (groupcfg.get('master').includes(value)) {
+            e.reply(`此人已在群管列表中，无需重复添加`, true)
+        } else {
+            let arr = groupcfg.get('master')
+            if (option == ('添加')) {
+                if (Array.isArray(arr)) {
+                    arr.push(value)
                 } else {
-                    let arr = groupcfg.get('group')
-                    if (option == ('添加')) {
-                        if (Array.isArray(arr)) {
-                            arr.push(value)
-                        } else {
-                            arr = [value]
-                        }
-                        groupcfg.set('groupmaster', arr)
-                    } else {
-                        if (Array.isArray(arr))
-                            for (let j = 0; j < arr.length; j++) {
-                                if (arr[j] == value) {
-                                    arr.splice(j, 1)
-                                    groupcfg.set('groupmaster', arr)
-                                    break
-                                }
-                            }
-                    }
-                    arr = await this.getList('groupmaster', groupcfg)
-                    if (Array.isArray(arr) && arr.length != 0) {
-                        msg.push(arr.join('\n'))
-                    } else {
-                        msg.push('无')
-                    }
-                    e.reply(msg)
-                    return true
+                    arr = [value]
                 }
+                groupcfg.set('master', arr)
             } else {
-                e.reply(`请私聊进行操作!`, true)
+                if (Array.isArray(arr))
+                    for (let j = 0; j < arr.length; j++) {
+                        if (arr[j] == value) {
+                            arr.splice(j, 1)
+                            groupcfg.set('master', arr)
+                            break
+                        }
+                    }
             }
+            arr = await this.getList('master', groupcfg)
+            if (Array.isArray(arr) && arr.length != 0) {
+                msg.push(arr.join('\n'))
+            } else {
+                msg.push('无')
+            }
+            e.reply(msg)
+            return true
         }
+
 
     }
 
@@ -464,19 +471,35 @@ export class groupSetting extends plugin {
             e.reply(`此群无权使用此机器人，请联系QQ${masterQQ}进行处理`, true)
             return false
         }
-        let groupcfg = await this.getGroupYaml(e.group_id)
-        if (!groupcfg.get('master').includes(e.user_id))
+        if (!groupcfg.get('groupmaster').includes(e.user_id))
             return false
+        let groupcfg = await this.getGroupYaml(e.group_id)
         await this.punishment(e)
-        let reg = new RegExp('^设置禁言时长([0-9]*)$')
+        let reg = new RegExp('^设置禁言时长([0-9]+)(分|时|天)$')
         let time = Number(reg.exec(e.msg)[1])
-        if (time % 60 != 0) {
-            e.reply(`请输入能被60整除的整数`, true)
-        } else {
-            if (time == '')
-                time = 600
+        let option = reg.exec(e.msg)[2]
+        console.log(e.group_id + '---------' + time + '--------' + option)
+        if (time == '' && option == '') {
+            time = 600
             groupcfg.set('time', time)
-            e.reply(`已成功将禁言时长修改为${time / 60}分钟`, true)
+            e.reply(`已成功将禁言时长修改为10分钟`, true)
+        }
+        else if (option == '分') {
+            time = time * 60
+            groupcfg.set('time', time)
+            e.reply(`已成功将禁言时长修改为${time}${option}`, true)
+        }
+        else if (option == '时') {
+            time = time * 60 * 60
+            groupcfg.set('time', time)
+            e.reply(`已成功将禁言时长修改为${time}${option}`, true)
+
+        }
+        else if (option == '天') {
+            time = time * 60 * 60 * 24
+            groupcfg.set('time', time)
+            e.reply(`已成功将禁言时长修改为${time}${option}`, true)
+
         }
     }
 
@@ -495,6 +518,7 @@ export class groupSetting extends plugin {
             groupcfg.set('timestamp', timestamp)
             groupcfg.set('data', 1)
         }
+        if (e.message[0]['type'] != 'text') return false
         if (groupcfg.get('speakArr')) {
             //检测消息中是否包含违禁词
             if (groupcfg.get('speakArr').some(item => e.msg.includes(item))) {
@@ -534,8 +558,9 @@ export class groupSetting extends plugin {
         let timestamp = date.getDate()
         await this.punishment(e)
         let groupcfg = await this.getGroupYaml(e.group_id)
-        if (groupcfg.get('timestamp') != timestamp) {
+        if (groupcfg.get('grouptimestamp') != timestamp) {
             groupcfg.set('increase', 0)
+            groupcfg.set('decrease', 0)
         }
         let data = groupcfg.get('increase')
         e.reply(`今日入群数据：${data}人`)
@@ -550,18 +575,39 @@ export class groupSetting extends plugin {
         let timestamp = date.getDate()
         await this.punishment(e)
         let groupcfg = await this.getGroupYaml(e.group_id)
-        if (groupcfg.get('timestamp') != timestamp) {
+        if (groupcfg.get('grouptimestamp') != timestamp) {
             groupcfg.set('decrease', 0)
+            groupcfg.set('increase', 0)
         }
         let data = groupcfg.get('decrease')
         e.reply(`今日退群数据：${data}人`)
+    }
+
+    async groupNotice(e) {
+        if (!config.get('group').includes(e.group_id)) {
+            e.reply(`此群无权使用此机器人，请联系QQ${masterQQ}进行处理`, true)
+            return false
+        }
+        let groupcfg = await this.getGroupYaml(e.group_id)
+        if (!groupcfg.get('groupmaster').includes(e.user_id))
+            return false
+        let reg = new RegExp('^设置群禁言提醒(开启|关闭)$')
+        await this.punishment(e)
+        let option = reg.exec(e.msg)[1]
+        if (option == '开启') {
+            groupcfg.set('groupnotice', true)
+            e.reply(`群禁言提醒已开启`, true)
+        }
+        else if (option == '关闭') {
+            groupcfg.set('groupnotice', false)
+            e.reply(`群禁言提醒已关闭`, true)
+        }
     }
 
     //以下操作仅支持Bot主人
     async addGroupManage(e) {
         let reg = new RegExp('^(删除|添加)群([0-9]+)$')
         let option = reg.exec(e.msg)[1]
-        console.log()
         let value = Number(reg.exec(e.msg)[2])
         console.log(option + '-----------------' + value)
         let msg = [`群列表:\n`]
