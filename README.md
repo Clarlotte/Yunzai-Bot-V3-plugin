@@ -9,8 +9,7 @@ groupSetting中的发言统计功能，由于云崽自身的冷却时间，会�
 #### 介绍
 - 基于Yunzai-Bot V3开发的插件，仅支持Yunzai-Bot V3，建议Bot为群主时使用该插件
 - 目前功能有设置和取消管理（机器人必须是群主），以及踢出群成员
-- 将js文件放置在Yunzai-Bot/plugins/example下，同时，lzy文件夹放在js文件的同目录下，然后重启云崽即可食用 
-- 当群主或者群管理发言时默认写入群配置文件中，如需关闭，请在lzy/config.js中进行将auto:true修改为auto:false
+- 将js文件放置在Yunzai-Bot/plugins/example下，同时，config文件夹放在js文件的同目录下，然后重启云崽即可食用 
 
 #### GroupSettings.js
 - 设置和取消管理员（前提是Bot必须是群主）,踢出群成员
