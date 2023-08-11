@@ -1,27 +1,28 @@
 import plugin from '../../lib/plugins/plugin.js'
 import cfg from '../../lib/config/config.js'
+import common from '../../lib/common/common.js'
 import { segment } from 'oicq'
 import fs from 'fs';
 import path from 'path'
 import yaml from 'js-yaml'
 import child_process from "child_process"
 import os from 'os'
+import _ from 'lodash'
 import YAML from "yaml"
-import { group } from 'console';
 
 let pathAddr = process.cwd().replace(/\\/g, '/')
 
 //await init()
 
-let YamlReader = await import('./lzy/config.js')
+let YamlReader = await import('./config/config.js')
 YamlReader = YamlReader.default
 
 let masterQQ = cfg.masterQQ[0]
 
-let config = new YamlReader(pathAddr + '/plugins/example/lzy/config.yaml', true)
+let config = new YamlReader(pathAddr + '/plugins/example/config/config.yaml', true)
 
 export class groupSetting extends plugin {
-    dirPath = path.resolve('./plugins/example/lzy')
+    dirPath = path.resolve('./plugins/example/config')
 
     constructor() {
         super({
@@ -171,7 +172,7 @@ export class groupSetting extends plugin {
             }
             fs.writeFileSync(groupPath, yaml.dump(Data), 'utf-8')
         }
-        let groupcfg = new YamlReader(pathAddr + '/plugins/example/lzy/' + group_id + '.yaml', true)
+        let groupcfg = new YamlReader(pathAddr + '/plugins/example/config/' + group_id + '.yaml', true)
         return groupcfg
     }
 
@@ -193,6 +194,51 @@ export class groupSetting extends plugin {
         return (size / Math.pow(num, 4)).toFixed(2) + 'T' // T
     }
 
+    async formatTime(time, format, repair = true) {
+        const second = parseInt(time % 60)
+        const minute = parseInt((time / 60) % 60)
+        const hour = parseInt((time / (60 * 60)) % 24)
+        const day = parseInt(time / (24 * 60 * 60))
+        const timeObj = {
+            day,
+            hour: repair && hour < 10 ? `0${hour}` : hour,
+            minute: repair && minute < 10 ? `0${minute}` : minute,
+            second: repair && second < 10 ? `0${second}` : second
+        }
+        if (format == 'default') {
+            let result = ''
+
+            if (day > 0) {
+                result += `${day}天`
+            }
+            if (hour > 0) {
+                result += `${timeObj.hour}小时`
+            }
+            if (minute > 0) {
+                result += `${timeObj.minute}分`
+            }
+            if (second > 0) {
+                result += `${timeObj.second}秒`
+            }
+            return result
+        }
+
+        if (typeof format === 'string') {
+            format = format
+                .replace(/dd/g, day)
+                .replace(/hh/g, timeObj.hour)
+                .replace(/mm/g, timeObj.minute)
+                .replace(/ss/g, timeObj.second)
+
+            return format
+        }
+
+        if (typeof format === 'function') {
+            return format(timeObj)
+        }
+
+        return timeObj
+    }
 
     async Give_Title(e) {
         if (!config.get('group').includes(e.group_id)) {
@@ -658,6 +704,8 @@ export class groupSetting extends plugin {
         //CPU制造者
         let cpuModel = cores[0]?.model.slice(0, cores[0]?.model.indexOf(' ')) || ''
         let cpuArch = await this.osInfo?.arch
+        //系统运行时间
+        let systime = await this.formatTime(os.uptime(), 'dd天hh小时mm分', false)
         let { currentLoad: { currentLoad }, cpuCurrentSpeed } = await this.si.get({
             currentLoad: 'currentLoad',
             cpuCurrentSpeed: 'max,avg'
@@ -667,7 +715,8 @@ export class groupSetting extends plugin {
                 let msg = [
                     `系统版本：${stdout}(${os.platform()})\n`,
                     `CPU使用率：${Math.round(currentLoad) + '%'}(${cpuModel} ${cores.length}核 ${cpuArch})\n`,
-                    `内存使用率：${MemUsage}(${Usingmemory}/${totalmem})`
+                    `内存使用率：${MemUsage}(${Usingmemory}/${totalmem})\n`,
+                    `系统运行时间：${systime}`,
                 ]
                 e.reply(msg)
             }
@@ -768,7 +817,7 @@ export class groupSetting extends plugin {
 }
 
 export class groupAlter extends plugin {
-    dirPath = path.resolve('./plugins/example/lzy')
+    dirPath = path.resolve('./plugins/example/config')
 
     constructor() {
         super({
@@ -784,7 +833,7 @@ export class groupAlter extends plugin {
         let date = new Date()
         let timestamp = date.getDate()
         let gainType = e.sub_type
-        let operator_id = e.operator_id, user_id = e.user_id,group_id=e.group_id
+        let operator_id = e.operator_id, user_id = e.user_id, group_id = e.group_id
         console.log(gainType + '---------' + e.user_id + '---------' + e.group_id)
         if (!fs.readdirSync(this.dirPath, 'utf-8').includes(e.group_id + '.yaml')) {
             let groupPath = this.dirPath + '/' + this.e.group_id + '.yaml'
@@ -816,7 +865,7 @@ export class groupAlter extends plugin {
         }
         if ((e.sub_type == 'increase') || (e.sub_type == 'decrease')) {
             // console.log(e)
-            let groupcfg = new YamlReader(pathAddr + '/plugins/example/lzy/' + e.group_id + '.yaml', true)
+            let groupcfg = new YamlReader(pathAddr + '/plugins/example/config/' + e.group_id + '.yaml', true)
             let data = groupcfg.get(gainType)
             if (groupcfg.get('timestamp') == Number(timestamp)) {
                 groupcfg.set(gainType, data + 1)
@@ -852,7 +901,7 @@ export class groupAlter extends plugin {
             }
         }
         else if (gainType == 'ban') {
-            let groupcfg = new YamlReader(pathAddr + '/plugins/example/lzy/' + e.group_id + '.yaml', true)
+            let groupcfg = new YamlReader(pathAddr + '/plugins/example/config/' + e.group_id + '.yaml', true)
             if (groupcfg.get('groupnotice'))
                 if (e.duration != 0) {
                     let msg = [
@@ -877,7 +926,7 @@ export class groupAlter extends plugin {
 }
 
 export class GroupExam extends plugin {
-    dirPath = path.resolve('./plugins/example/lzy')
+    dirPath = path.resolve('./plugins/example/config')
 
     constructor() {
         super({
@@ -892,7 +941,7 @@ export class GroupExam extends plugin {
         const group_id = e.group_id, user_id = e.user_id, comment = e.comment
         console.log(group_id + '---' + user_id)
         if (!config.get('group').includes(group_id)) return false
-        let groupcfg = new YamlReader(pathAddr + '/plugins/example/lzy/' + group_id + '.yaml', true)
+        let groupcfg = new YamlReader(pathAddr + '/plugins/example/config/' + group_id + '.yaml', true)
         let comment_split = comment.split("答案：")
         let cm = (comment_split && comment_split[1]) ? comment_split[1].replace(/[\r\n]/g, "") : ""
         if (groupcfg.get('comment').includes(cm)) e.approve(true)
